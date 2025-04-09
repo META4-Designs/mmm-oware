@@ -1,14 +1,18 @@
-# My Git Project
+# mmm-oware
 
-This is a new Git repository created on April 8, 2025.
+Let's play.
+
+## About
+
+This is a repository for the Oware game, created on April 8, 2025.
 
 ## Getting Started
 
-This repository is ready for you to add your project files.
+This repository is ready for development.
 
 ## Next Steps
 
-1. Add your project files
-2. Make your first commit
-3. Create a remote repository (if needed)
-4. Push your changes
+1. Add project files
+2. Implement game logic
+3. Create user interface
+4. Test and refine
