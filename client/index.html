@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mansa's Marbles - Oware Game</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
+    <!-- Meta tags for SEO and social sharing -->
+    <meta name="description" content="A 3D web game based on the traditional Mancala variant, Oware Nam Nam, featuring educational elements about Mansa Musa.">
+    <meta name="keywords" content="oware, mancala, game, mansa musa, educational, 3D, web game">
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mansasmarbles.com/">
+    <meta property="og:title" content="Mansa's Marbles - Oware Game">
+    <meta property="og:description" content="A 3D web game based on the traditional Mancala variant, Oware Nam Nam, featuring educational elements about Mansa Musa.">
+    <meta property="og:image" content="assets/images/social-preview.png">
+</head>
+<body>
+    <!-- Rotation prompt for mobile devices in portrait mode -->
+    <div id="rotation-prompt" class="hidden">
+        <div class="rotation-icon"></div>
+        <p>Please rotate your device for the best gaming experience</p>
+    </div>
+
+    <!-- Loading screen / Splash screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img src="assets/images/logo.png" alt="Mansa's Marbles Logo" class="logo">
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+            <p class="loading-text">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Main game container -->
+    <div id="game-container" class="hidden">
+        <!-- Three.js will render the 3D game here -->
+        <canvas id="game-canvas"></canvas>
+        
+        <!-- UI Overlay -->
+        <div id="ui-overlay">
+            <!-- Game HUD will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Auth modal -->
+    <div id="auth-modal" class="hidden">
+        <div class="auth-container">
+            <h2>Sign In</h2>
+            <div class="auth-options">
+                <button id="google-signin" class="auth-button google">Sign in with Google</button>
+                <button id="facebook-signin" class="auth-button facebook">Sign in with Facebook</button>
+                <button id="instagram-signin" class="auth-button instagram">Sign in with Instagram</button>
+                <button id="guest-mode" class="auth-button guest">Play as Guest</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Three.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.min.js"></script>
+    <!-- OrbitControls for camera manipulation -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/controls/OrbitControls.js"></script>
+    <!-- GLTF Loader for 3D models -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.150.1/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Stats.js for performance monitoring -->
+    <script src="https://cdn.jsdelivr.net/npm/stats.js@0.17.0/build/stats.min.js"></script>
+    
+    <!-- Application scripts -->
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/core/board.js"></script>
+    <script src="js/core/rules.js"></script>
+    <script src="js/core/ai.js"></script>
+    <script src="js/rendering/renderer.js"></script>
+    <script src="js/components/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
