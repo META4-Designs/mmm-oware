@@ -54,14 +54,23 @@ npm run dev
 
 ```
 /
+├── client/             # Frontend code
+│   ├── assets/         # Static assets (images, models, etc.)
+│   ├── css/            # Stylesheets
+│   ├── js/             # JavaScript files
+│   └── index.html      # Main HTML file
+├── server/             # Backend code
+│   ├── config/         # Configuration files
+│   ├── controllers/    # Request handlers
+│   ├── models/         # Database models
+│   ├── routes/         # API routes
+│   └── server.js       # Main server file
 ├── docs/               # Documentation
 │   └── references/     # Reference images and materials
-├── public/             # Static assets (to be added)
-├── src/                # Source code (to be added)
 ├── PRD.md              # Product Requirements Document
 ├── README.md           # This file
 ├── To-Do-List          # Development task checklist
-└── package.json        # Dependencies (to be added)
+└── package.json        # Dependencies
 ```
 
 ## Development Roadmap
