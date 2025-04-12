@@ -1,0 +1,214 @@
+# Mansa's Marbles - MVP Development To-Do List
+
+This checklist outlines the key tasks required to build the Minimum Viable Product (MVP) based on the PRD (v1.2).
+
+## Phase 1: Pre-Production & Setup
+
+* [ ] Finalize PRD (v1.2 acknowledged)
+* [ ] Create detailed Art Style Guide (based on Pixar/Sankore theme)
+* [ ] Set up Version Control (e.g., Git repository)
+* [ ] Set up Development Environments (Node.js, IDEs)
+* [ ] Choose & Confirm Specific Database (e.g., MongoDB or PostgreSQL)
+* [ ] Choose & Confirm Node.js Framework (e.g., Express.js)
+* [ ] Create UI Wireframes for all MVP screens
+* [ ] Create detailed Asset List (3D models, textures, sounds)
+* [ ] Set up Project Management Tool (e.g., Trello, Jira)
+* [ ] Research and select Three.js libraries/plugins for specific 3D needs
+* [ ] Create technical architecture diagram
+* [ ] Define API contract documentation
+* [ ] Create dependencies list and version management strategy
+
+## Phase 2: Core Gameplay Logic (Frontend)
+
+* [ ] Implement Game Board State Representation
+* [ ] Implement Seed Sowing Logic (anticlockwise)
+* [ ] Implement "Laps" Rule Logic [cite: 10-13]
+* [ ] Implement Capture Logic (capture-on-four, last-seed rule) [cite: 15-19]
+* [ ] Implement Turn Ending Logic (last seed in empty house)
+* [ ] Implement End-of-Round Logic (8 seeds remain, final captures) [cite: 21]
+* [ ] Implement Territory Gain Logic (between rounds) [cite: 23-29]
+* [ ] Implement Game End Condition Logic (player owns all houses) [cite: 30]
+* [ ] Implement Game State Management (tracking current player, scores, board state)
+* [ ] Implement Turn-based Flow Control
+* [ ] Write Unit Tests for all Rules Engine components
+* [ ] Implement game state serialization for potential save/resume functionality
+* [ ] Create replay system for move history
+
+## Phase 3: 3D Scene & Assets (Frontend - three.js)
+
+* [ ] Set up basic three.js scene, renderer, camera
+* [ ] Model 3D Game Board (Ivory/Gold, based on ref image)
+* [ ] Model 3D Seeds/Marbles (Stone/Gold)
+* [ ] Model 3D Table (Walnut) & Rug (Zebra)
+* [ ] Model 3D Environment Assets (Sankore Hall elements)
+* [ ] Create Textures and Materials for all assets
+* [ ] Integrate assets into the three.js scene
+* [ ] Implement Scene Lighting (Diffuse, Natural)
+* [ ] Configure Camera (Position, Shallow Depth of Field effect)
+* [ ] Implement basic seed selection interaction (click/tap)
+* [ ] Implement basic seed sowing animation (moving seeds between houses)
+* [ ] Implement basic capture animation effect
+* [ ] Implement asset loading optimization (progressive loading)
+* [ ] Create fallback rendering options for lower-end devices
+* [ ] Implement responsive camera positioning optimized for landscape orientation (default/native layout)
+
+## Phase 4: User Interface (Frontend - HTML/CSS/JS or Framework)
+
+* [ ] Set up UI framework/structure (HTML/CSS overlay or React/Vue components)
+* [ ] Implement Responsive Layout shell with landscape orientation as default/native layout
+* [ ] Create orientation handling for optimal display on all devices
+* [ ] Design and implement animated visual/iconographic rotation prompt for mobile and tablet devices in portrait mode
+* [ ] Design and implement engaging splash screen animation with brand-aligned visuals and attention-grabbing effects
+* [ ] Create Main Menu UI (Play vs AI, Difficulty Select)
+* [ ] Create Game Screen HUD UI (Player Scores, Captured Seeds Display, Turn Indicator)
+* [ ] Create AI Difficulty Selection Screen/Modal
+* [ ] Create Sign-in Screen (Google, Facebook, Instagram, Guest buttons)
+* [ ] Create Trivia Presentation Modal/Screen
+* [ ] Create End-of-Round Summary UI
+* [ ] Create End-of-Game Summary UI (Winner Display)
+* [ ] Integrate UI elements with Game State (displaying scores, turns, etc.)
+* [ ] Ensure UI is responsive across target devices (desktop, mobile)
+* [ ] Create loading/progress indicators
+* [ ] Implement tutorial overlay/guidance system
+* [ ] Design and implement error states and recovery flows
+
+## Phase 5: AI Implementation (Frontend/Backend Logic)
+
+* [ ] Design AI Logic - Level 1 (Simple, possibly random valid moves)
+* [ ] Implement AI Logic - Level 1
+* [ ] Design AI Logic - Level 2 (Basic heuristics - e.g., prioritize captures)
+* [ ] Implement AI Logic - Level 2
+* [ ] Design AI Logic - Level 3 (Intermediate strategy - e.g., setting up captures, avoiding bad moves)
+* [ ] Implement AI Logic - Level 3
+* [ ] Design AI Logic - Level 4 (Advanced strategy - e.g., long-term planning, territory control focus)
+* [ ] Implement AI Logic - Level 4
+* [ ] Integrate AI move execution into the game loop
+* [ ] Test and balance AI difficulty levels
+
+## Phase 6: Backend & User Accounts (Backend - Node.js)
+
+* [ ] Set up Node.js server project (e.g., using Express.js)
+* [ ] Set up Database & Schema (Users table: userId, authProvider, providerId, displayName; Scores table: userId, score, aiLevel, timestamp)
+* [ ] Implement Google OAuth 2.0 Authentication Flow
+* [ ] Implement Facebook Login Authentication Flow
+* [ ] Implement Instagram Basic Display API Authentication Flow (Note: Instagram API is limited for login)
+* [ ] Implement Guest Mode session handling (no persistent data)
+* [ ] Implement JWT (or other session) generation and validation
+* [ ] Create API endpoint: `POST /api/auth/google` (Handles callback)
+* [ ] Create API endpoint: `POST /api/auth/facebook` (Handles callback)
+* [ ] Create API endpoint: `POST /api/auth/instagram` (Handles callback)
+* [ ] Create API endpoint: `POST /api/scores` (Save score for logged-in user)
+* [ ] Create API endpoint: `GET /api/scores` (Retrieve scores for logged-in user)
+* [ ] Implement Middleware for Authentication checks on protected endpoints
+* [ ] Implement basic security: HTTPS, input validation, password hashing (if needed), CORS
+* [ ] Implement rate limiting to prevent abuse
+* [ ] Create backup and recovery procedures
+* [ ] Set up logging and monitoring
+* [ ] Create developer documentation for API endpoints
+
+## Phase 7: Learning Integration (Content & Frontend)
+
+* [ ] Research and write ~20-30 unique trivia questions & 4 multiple-choice options based *only* on provided Mansa Musa docs [cite: 1-73].
+* [ ] Implement logic to randomly select and display a trivia question after each round.
+* [ ] Implement UI feedback for correct/incorrect trivia answers.
+* [ ] Integrate Trivia display flow into the end-of-round sequence.
+
+## Phase 8: Audio Integration (Frontend)
+
+* [ ] Compose or Source Afrobeat background music track(s).
+* [ ] Create or Source SFX: Seed movement (hollow pebble).
+* [ ] Create or Source SFX: Seed drop (crash).
+* [ ] Create or Source SFX: Seed capture (swipe).
+* [ ] Create or Source SFX: UI interactions (button clicks, etc.).
+* [ ] Integrate an audio library (e.g., Howler.js, Tone.js) or use Web Audio API.
+* [ ] Implement logic to play background music.
+* [ ] Implement logic to trigger SFX based on game events (sowing, capture, click).
+* [ ] Add basic audio controls (mute/unmute).
+* [ ] Implement audio preloading strategy
+* [ ] Create separate volume controls for music vs. SFX
+* [ ] Implement fallback for browsers with limited audio support
+
+## Phase 9: Testing, Refinement & Polish
+
+* [ ] **Internal Testing (Alpha):**
+    * [ ] Test core game rules thoroughly.
+    * [ ] Test all UI flows and interactions.
+    * [ ] Test AI levels for expected behavior.
+    * [ ] Test sign-in flows (all providers + guest).
+    * [ ] Test score saving/loading.
+    * [ ] Test trivia presentation.
+    * [ ] Identify and log bugs.
+* [ ] **Performance Testing:**
+    * [ ] Test FPS on target devices/browsers.
+    * [ ] Test loading times.
+    * [ ] Optimize 3D assets and code.
+    * [ ] Test on low-end devices
+    * [ ] Test with poor network conditions
+    * [ ] Define performance budgets (loading time < 5s, FPS > 30, etc.)
+    * [ ] Implement performance monitoring
+    * [ ] Create progressive enhancement strategy for different device capabilities
+* [ ] **Usability Testing:**
+    * [ ] Conduct tests with a small group representing the target audience.
+    * [ ] Observe interaction difficulties.
+    * [ ] Gather feedback on clarity and enjoyment.
+* [ ] **Beta Testing (Closed):**
+    * [ ] Recruit ~20-30 external testers.
+    * [ ] Provide beta build access.
+    * [ ] Collect feedback via surveys/bug reports.
+    * [ ] Conduct cross-browser compatibility testing
+    * [ ] Test with users from target age groups (6+ years old)
+    * [ ] Analyze user behavior through session recordings (with consent)
+* [ ] **Bug Fixing & Iteration:**
+    * [ ] Prioritize and fix bugs found during testing.
+    * [ ] Implement improvements based on usability/beta feedback.
+* [ ] **Final Polish:**
+    * [ ] Refine animations and visual effects.
+    * [ ] Enhance UI/UX based on feedback.
+    * [ ] Ensure audio mix is balanced.
+* [ ] **Accessibility Review & Implementation:**
+    * [ ] Check color contrast (WCAG AA compliance at minimum)
+    * [ ] Test keyboard navigation for all interactive elements
+    * [ ] Ensure touch target sizes are adequate (minimum 44x44 pixels)
+    * [ ] Add proper ARIA labels to all interactive elements
+    * [ ] Implement focus indicators for keyboard navigation
+    * [ ] Test with screen readers (VoiceOver, NVDA)
+    * [ ] Create text alternatives for all non-text content
+    * [ ] Ensure game is playable without reliance on color perception
+    * [ ] Add captions or visual indicators for all audio cues
+    * [ ] Implement pause/slow-down functionality for users with cognitive disabilities
+    * [ ] Test with users who have various disabilities
+    * [ ] Create accessibility statement documenting features and limitations
+    * [ ] Ensure all text is readable at 200% zoom
+    * [ ] Test with various assistive technologies
+
+## Phase 10: Deployment
+
+* [ ] Choose & Configure Frontend Hosting (e.g., Netlify, Vercel, S3/CloudFront).
+* [ ] Choose & Configure Backend Hosting (e.g., Heroku, AWS EC2/ECS, Google Cloud Run).
+* [ ] Configure Production Database.
+* [ ] Set up Domain Name & HTTPS certificate.
+* [ ] Configure Environment Variables (API keys, DB credentials).
+* [ ] Perform final QA checks on the production environment.
+* [ ] Build frontend assets for production.
+* [ ] Deploy backend application.
+* [ ] Deploy frontend application.
+* [ ] Monitor initial launch for errors or performance issues.
+* [ ] Set up CI/CD pipeline
+* [ ] Create deployment rollback procedure
+* [ ] Implement content delivery network (CDN) for assets
+* [ ] Configure automated scaling policies
+
+## Phase 11: Post-Launch (Initial)
+
+* [ ] Set up Analytics tracking (e.g., Google Analytics).
+* [ ] Monitor server logs and performance metrics.
+* [ ] Collect user feedback through designated channels.
+* [ ] Address any critical bugs discovered post-launch.
+* [ ] Begin planning development for Phase 1 Post-MVP features (Pass-and-Play, Cut-scenes).
+* [ ] Set up automated error reporting
+* [ ] Create a public roadmap for future features
+* [ ] Establish a feedback collection mechanism within the app
+* [ ] Create privacy policy and terms of service
+* [ ] Ensure COPPA compliance (since targeting children 6+)
+* [ ] Define specific performance metrics to track (session duration, completion rate, etc.)
+
