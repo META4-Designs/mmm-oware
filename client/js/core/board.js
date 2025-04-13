@@ -153,7 +153,5 @@ class OwareBoard {
   }
 }
 
-// Export the OwareBoard class if using modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = OwareBoard;
-}
+// Export the OwareBoard class
+export default OwareBoard;

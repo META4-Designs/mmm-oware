@@ -4,12 +4,20 @@
  * This file initializes the game and manages the overall application flow.
  */
 
+// Import game components
+import GameRenderer from './rendering/renderer.js';
+import OwareBoard from './core/board.js';
+import OwareRules from './core/rules.js';
+
 // Wait for the DOM to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize the application
   const app = new MansaMarblesApp();
   app.init();
 });
+
+// Export the app class for potential use in other modules
+export default MansaMarblesApp;
 
 class MansaMarblesApp {
   constructor() {

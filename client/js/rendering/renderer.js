@@ -5,6 +5,11 @@
  * It implements landscape orientation as the default layout.
  */
 
+// Import Three.js and related modules
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import Stats from 'stats.js';
+
 class GameRenderer {
   /**
    * Creates a new game renderer
@@ -109,7 +114,7 @@ class GameRenderer {
   setupControls() {
     // Use OrbitControls for desktop
     if (!this.isMobile) {
-      this.controls = new THREE.OrbitControls(this.camera, this.canvas);
+      this.controls = new OrbitControls(this.camera, this.canvas);
       this.controls.enableDamping = true;
       this.controls.dampingFactor = 0.05;
       this.controls.screenSpacePanning = false;
@@ -357,7 +362,5 @@ class GameRenderer {
   }
 }
 
-// Export the GameRenderer class if using modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = GameRenderer;
-}
+// Export the GameRenderer class
+export default GameRenderer;

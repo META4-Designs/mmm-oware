@@ -216,7 +216,5 @@ class OwareRules {
   }
 }
 
-// Export the OwareRules class if using modules
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = OwareRules;
-}
+// Export the OwareRules class
+export default OwareRules;

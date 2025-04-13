@@ -84,26 +84,57 @@ Future updates will introduce:
 * **Game Flow:**
     * Start Screen: Splash animation -> Sign-in/Guest option -> Main Menu.
     * Main Menu: Select Mode (vs AI for MVP), AI Difficulty, Start Game.
+    * First Move Determination: Animated "pick a hand" sequence to determine who goes first.
     * Gameplay Screen: Display board, seeds, player scores, active turn indicator. Handle player input (selecting house to sow from). Execute AI moves.
     * End of Round: Calculate captures, display winner, animate territory change, present Mansa Musa trivia.
-    * End of Game: Display winner, celebratory animation, return to Main Menu.
-* **AI:** Implement 4 distinct difficulty levels with varying strategic capabilities, from random/basic moves (Level 1) to strategic planning (Level 4).
+    * End of Game: Display winner with celebratory animation, then show scorecard (Houses Won, Houses Lost, Points Earned), present options (Play Another Round, Best Move Replay, Graduate to next level if applicable).
+* **AI:** Implement 4 distinct difficulty levels (referred to as Levels I, II, III, and IV) with varying strategic capabilities. The AI opponent will be referred to as "the Elder" across all difficulty levels.
 * **Scoring:** Implement the secondary scoring system based on AI level, displayed clearly to the player and saved for signed-in users.
+* **Progression System:** Players start at Level I and can graduate to higher levels by winning the best of three successive games.
+* **Seed Sowing Animation:** Implement semi-automatic, animated sowing with a translucent "hand of God" that scoops and sows seeds with appropriate physics and sound effects.
+* **Interaction Controls:**
+    * Tap to select a house for sowing seeds
+    * Tap to capture available marbles
+    * Tap to assign territory after winning a game
+    * Tap to speed up sowing animation
+    * Press-and-hold to double sowing animation speed
+* **Visual Guidance:** Show pulsing rings of light around available houses (golden) and capturable marbles (green) at the first two difficulty levels.
+* **Best Move Replay:** Record and allow replay of the game's most points-rewarding move.
+* **Captured Seeds Display:** Show a running tally of captured seeds with an animated burlap sack visual.
+* **Game Controls:**
+    * Start Over option available at any time
+    * User Menu with profile information and statistics
+    * "How to Play" help panel with game rules and points system explanation
 
 ### 5.2. Visuals & User Interface (UI)
 
 * **3D Assets:** Create high-quality 3D models for the board, seeds, table, rug, and environment elements according to the specified art style (Pixar-inspired) and material descriptions (ivory, gold, stone, walnut, zebra hide). Reference image `docs/references/M'Oware Board.png` to guide board design.
 * **Environment:** Develop the University of Sankore event hall setting with appropriate lighting (diffuse, natural) and shallow depth-of-field effect.
 * **Animations:** Implement all required gameplay animations smoothly and clearly:
-    * Seed sowing path with arc trajectory and subtle bounce effects
+    * "Hand of God" seed sowing animation with cupping and tilting motions
+    * Seed dropping with physical reverberations and settling effects
+    * "Pick a hand" animation for first move determination
     * Capture effects with satisfying visual feedback (glow, particle effects)
     * Territory change visuals with color shift and ownership indicators
     * UI transitions with smooth easing functions
     * Victory/defeat animations with appropriate emotional impact
     * Splash screen animation with attention-grabbing visuals and brand elements
+    * Burlap sack animation for captured seeds display
+    * Best move replay cinematic sequence
+* **Visual Guidance:**
+    * Golden pulsing rings around available houses (Levels I and II only)
+    * Green pulsing rings around capturable marbles (Levels I and II only)
+    * Solid golden rings around owned territory during territory assignment
+    * Green pulsing rings around available territories during assignment
 * **Layout Orientation:** Implement landscape orientation as the default/native layout for all platforms, particularly considering the horizontal nature of the Oware game board. The UI should be optimized for landscape view on both desktop and mobile devices. For mobile and tablet-sized devices in portrait mode, display an animated visual/iconographic indicator prompting users to rotate their device for the optimal gaming experience.
 * **Responsiveness:** Ensure the UI layout and 3D view adapt gracefully to different screen sizes (desktop monitors, tablets, smartphones). Touch controls must be intuitive on mobile with appropriate hit areas (minimum 44x44 pixels).
 * **UI Elements:** Design clean and intuitive buttons, menus, score displays, trivia interface, and sign-in prompts consistent with the overall art style. Use clear iconography with text labels where appropriate.
+* **Additional UI Components:**
+    * Start Over icon in the upper right corner
+    * User Menu icon with profile picture, screen name, difficulty level, PPG, and recent scorecards
+    * "How to Play" help panel with game rules and points system explanation
+    * Captured seeds counter with animated burlap sack visual
+    * End of Game menu with Play Another Round, Best Move Replay, and Graduate options
 
 ### 5.3. Audio Design
 
@@ -186,20 +217,27 @@ Future updates will introduce:
 3. Chooses sign-in method or guest mode
 4. Encounters tutorial prompt (accept/decline)
 5. If accepted, completes interactive tutorial explaining rules
-6. Selects AI difficulty (with clear descriptions for each level)
-7. Plays first game with helpful tooltips
-8. Encounters first trivia question
-9. Views results screen with score and progress
-10. Prompted to play again or return to menu
+6. Participates in "pick a hand" sequence to determine first move
+7. Plays first game with helpful visual guidance (pulsing rings around available houses and capturable marbles)
+8. Uses tap and press-and-hold controls to interact with the game
+9. Views running tally of captured seeds in the animated burlap sack
+10. Encounters first trivia question after game ends
+11. Views scorecard and end-of-game options
+12. Explores Best Move Replay feature
+13. Decides whether to play another round or exit
 
 #### Returning User Journey
 1. User opens game
 2. Automatically signed in (if previously authenticated)
 3. Views personalized welcome back message with previous score
-4. Selects game mode and difficulty
-5. Plays game with familiar mechanics
-6. Encounters new trivia questions
-7. Views updated progress and achievements
+4. Checks User Menu to view profile and statistics
+5. References "How to Play" if needed for rule clarification
+6. Participates in "pick a hand" sequence to determine first move
+7. Plays game with familiar mechanics
+8. Uses Start Over option if desired
+9. Encounters new trivia questions
+10. Views updated scorecard and progress
+11. Graduates to next difficulty level if eligible (winning best of three games)
 
 ### 9.3. Accessibility Considerations
 

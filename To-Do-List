@@ -30,9 +30,13 @@ This checklist outlines the key tasks required to build the Minimum Viable Produ
 * [ ] Implement Game End Condition Logic (player owns all houses) [cite: 30]
 * [ ] Implement Game State Management (tracking current player, scores, board state)
 * [ ] Implement Turn-based Flow Control
+* [ ] Implement First Move Determination ("pick a hand" mechanic)
+* [ ] Implement Difficulty Level Progression System (Levels I-IV)
+* [ ] Implement Best Move Tracking and Replay System
+* [ ] Implement Captured Seeds Counter and Display
+* [ ] Implement Game Controls (Start Over, User Menu, How to Play)
 * [ ] Write Unit Tests for all Rules Engine components
 * [ ] Implement game state serialization for potential save/resume functionality
-* [ ] Create replay system for move history
 
 ## Phase 3: 3D Scene & Assets (Frontend - three.js)
 
@@ -41,16 +45,14 @@ This checklist outlines the key tasks required to build the Minimum Viable Produ
 * [ ] Model 3D Seeds/Marbles (Stone/Gold)
 * [ ] Model 3D Table (Walnut) & Rug (Zebra)
 * [ ] Model 3D Environment Assets (Sankore Hall elements)
+* [ ] Model "Hand of God" for seed sowing animations
 * [ ] Create Textures and Materials for all assets
 * [ ] Integrate assets into the three.js scene
 * [ ] Implement Scene Lighting (Diffuse, Natural)
 * [ ] Configure Camera (Position, Shallow Depth of Field effect)
-* [ ] Implement basic seed selection interaction (click/tap)
-* [ ] Implement basic seed sowing animation (moving seeds between houses)
-* [ ] Implement basic capture animation effect
-* [ ] Implement asset loading optimization (progressive loading)
-* [ ] Create fallback rendering options for lower-end devices
 * [ ] Implement responsive camera positioning optimized for landscape orientation (default/native layout)
+* [ ] Create fallback rendering options for lower-end devices
+* [ ] Create animated burlap sack for captured seeds display
 
 ## Phase 4: User Interface (Frontend - HTML/CSS/JS or Framework)
 
@@ -65,7 +67,12 @@ This checklist outlines the key tasks required to build the Minimum Viable Produ
 * [ ] Create Sign-in Screen (Google, Facebook, Instagram, Guest buttons)
 * [ ] Create Trivia Presentation Modal/Screen
 * [ ] Create End-of-Round Summary UI
-* [ ] Create End-of-Game Summary UI (Winner Display)
+* [ ] Create End-of-Game Summary UI (Winner display with celebratory animation, followed by Scorecard with Houses Won/Lost, Points Earned)
+* [ ] Create End-of-Game Options UI (Play Another Round, Best Move Replay, Graduate options)
+* [ ] Create User Menu with profile picture, screen name, difficulty level, PPG, and recent scorecards
+* [ ] Create "How to Play" help panel with game rules and points system explanation
+* [ ] Create Start Over button/icon in the upper right corner
+* [ ] Implement visual guidance system (pulsing rings for available houses and capturable marbles)
 * [ ] Integrate UI elements with Game State (displaying scores, turns, etc.)
 * [ ] Ensure UI is responsive across target devices (desktop, mobile)
 * [ ] Create loading/progress indicators
@@ -74,14 +81,16 @@ This checklist outlines the key tasks required to build the Minimum Viable Produ
 
 ## Phase 5: AI Implementation (Frontend/Backend Logic)
 
-* [ ] Design AI Logic - Level 1 (Simple, possibly random valid moves)
-* [ ] Implement AI Logic - Level 1
-* [ ] Design AI Logic - Level 2 (Basic heuristics - e.g., prioritize captures)
-* [ ] Implement AI Logic - Level 2
-* [ ] Design AI Logic - Level 3 (Intermediate strategy - e.g., setting up captures, avoiding bad moves)
-* [ ] Implement AI Logic - Level 3
-* [ ] Design AI Logic - Level 4 (Advanced strategy - e.g., long-term planning, territory control focus)
-* [ ] Implement AI Logic - Level 4
+* [ ] Design AI Logic - Level I (Simple, possibly random valid moves)
+* [ ] Implement AI Logic - Level I
+* [ ] Design AI Logic - Level II (Basic heuristics - e.g., prioritize captures)
+* [ ] Implement AI Logic - Level II
+* [ ] Design AI Logic - Level III (Intermediate strategy - e.g., setting up captures, avoiding bad moves)
+* [ ] Implement AI Logic - Level III
+* [ ] Design AI Logic - Level IV (Advanced strategy - e.g., long-term planning, territory control focus)
+* [ ] Implement AI Logic - Level IV
+* [ ] Implement "the Elder" persona across all AI difficulty levels
+* [ ] Implement difficulty progression system (best of three games to graduate)
 * [ ] Integrate AI move execution into the game loop
 * [ ] Test and balance AI difficulty levels
 
@@ -119,7 +128,12 @@ This checklist outlines the key tasks required to build the Minimum Viable Produ
 * [ ] Create or Source SFX: Seed movement (hollow pebble).
 * [ ] Create or Source SFX: Seed drop (crash).
 * [ ] Create or Source SFX: Seed capture (swipe).
+* [ ] Create or Source SFX: "Hand of God" scooping and tilting.
+* [ ] Create or Source SFX: Seed physical reverberations and settling.
+* [ ] Create or Source SFX: "Pick a hand" sequence.
 * [ ] Create or Source SFX: UI interactions (button clicks, etc.).
+* [ ] Create or Source SFX: Tap to speed up sowing animation.
+* [ ] Create or Source SFX: Press-and-hold to double sowing speed.
 * [ ] Integrate an audio library (e.g., Howler.js, Tone.js) or use Web Audio API.
 * [ ] Implement logic to play background music.
 * [ ] Implement logic to trigger SFX based on game events (sowing, capture, click).
