@@ -1,42 +1,45 @@
 /**
- * Enhanced Oware Board Model
+ * Final Oware Board Model
  * 
- * Contains the finalized configuration and creation function for the
- * Oware board base geometry with correct dimensions and cutouts.
+ * Defines the final dimensions and creation logic for the Oware board,
+ * based on iterative refinement to match reference images with specific margins and gaps.
  */
 
-// --- Final Board Configuration (1.5cm Margin & Handle Gap) ---
-export const BOARD_CONFIG = {
-    length: 45.0, width: 13.8, depth: 4, cornerRadius: 2.0, // Final board dimensions
+// --- Final Board Configuration (Derived from layout-15mm-margin-preview.html) ---
+export const FINAL_BOARD_CONFIG = {
+    length: 45.0, width: 13.8, depth: 4.0, cornerRadius: 2.0,
     margin: 1.5, 
     pitRows: 2, pitsPerRow: 6,
-    pitRadius: 2.5, // Calculated pit radius (PD=5.0)
-    pitDepth: 1.0, // Target depth for concave pits (used later with CSG)
-    handleCutoutWidth: 2.5, // Final handle width
-    handleCutoutLength: 10.8, // Adjusted handle length for board width
-    handleCutoutCornerRadius: 1.25, // Final handle radius (width/2)
-    handleDistanceFromEnd: 1.5, // Positioned at margin
-    boardColor: 0xf5e8c0, pitColor: 0xd3c8a0,
+    pitRadius: 2.5,
+    pitDepth: 1.0, // Note: This will be handled differently with CSG later
+    handleCutoutWidth: 2.5,
+    handleCutoutLength: 10.8,
+    handleCutoutCornerRadius: 1.25,
+    handleDistanceFromEnd: 1.5,
+    boardColor: 0xf5e8c0, // Example color
     handlePitGap: 1.5, // Gap between handle and first pit column
     pitPitGap: 0.8 // Gap between pit columns
 };
 
 /**
- * Creates the final Oware board base geometry with handle and pit *holes*.
- * Note: Pits are currently through-holes; CSG will be needed for concave depressions.
- * @param {Object} THREE - Three.js library instance
- * @returns {THREE.Group} Group containing the board mesh
+ * Creates the final Oware board base geometry with handle and pit cutouts (as through-holes for now).
+ * Later steps will modify this to use CSG for concave pits.
+ * @param {Object} THREE - Three.js library instance.
+ * @param {Object} cfg - Board configuration object (e.g., FINAL_BOARD_CONFIG).
+ * @returns {THREE.Group} Group containing the board mesh.
  */
-export function createFinalBoardModel(THREE) {
-    const cfg = BOARD_CONFIG; // Use the config from this module
+export function createFinalOwareBoard(THREE, cfg) {
     const boardGroup = new THREE.Group();
     const halfBoardLength = cfg.length / 2;
     const halfBoardWidth = cfg.width / 2;
     
     // Materials
-    const boardMaterial = new THREE.MeshStandardMaterial({ color: cfg.boardColor, roughness: 0.7 });
+    const boardMaterial = new THREE.MeshStandardMaterial({ 
+        color: cfg.boardColor, 
+        roughness: 0.7 
+    });
     
-    //console.log("Creating board shape w/ refined handle & pit holes...");
+    console.log("Creating board shape w/ handle & pit holes...");
     
     // --- Main Board Shape (Handles and Pits as Holes) ---
     const boardShape = new THREE.Shape();
@@ -53,9 +56,9 @@ export function createFinalBoardModel(THREE) {
     
     // Handles
     const handleHoles = [];
-    const handleHalfLength = cfg.handleCutoutLength / 2; // 10.8 / 2 = 5.4
-    const handleHalfWidth = cfg.handleCutoutWidth / 2;   // 2.5 / 2 = 1.25
-    const handleR = cfg.handleCutoutCornerRadius;       // 1.25
+    const handleHalfLength = cfg.handleCutoutLength / 2;
+    const handleHalfWidth = cfg.handleCutoutWidth / 2;
+    const handleR = cfg.handleCutoutCornerRadius;
     
     // Handle 1 (Right Side)
     const handlePath1 = new THREE.Path();
@@ -98,7 +101,7 @@ export function createFinalBoardModel(THREE) {
     
     // Starting X position
     const firstPitX = -halfBoardLength + cfg.margin + cfg.handleCutoutWidth + cfg.handlePitGap + pitRadius; // -22.5 + 1.5 + 2.5 + 1.5 + 2.5 = -14.5
-    //console.log(`First pit X: ${firstPitX.toFixed(2)}, Pit Spacing: ${pitSpacingX.toFixed(2)}`);
+    console.log(`First pit X: ${firstPitX.toFixed(2)}, Pit Spacing: ${pitSpacingX.toFixed(2)}`);
 
     for (let i = 0; i < cfg.pitRows; i++) {
         for (let j = 0; j < cfg.pitsPerRow; j++) {
@@ -118,17 +121,18 @@ export function createFinalBoardModel(THREE) {
     }
     
     boardShape.holes.push(...handleHoles, ...pitHoles);
-    //console.log(`Added ${handleHoles.length} handle holes and ${pitHoles.length} pit holes.`);
+    console.log(`Added ${handleHoles.length} handle holes and ${pitHoles.length} pit holes.`);
     
     // Extrude the board shape (with all holes)
     const extrudeSettings = {
         steps: 1, depth: cfg.depth, bevelEnabled: true,
-        bevelThickness: 0.1, bevelSize: 0.1, bevelOffset: 0, bevelSegments: 3
+        bevelThickness: 0.1, bevelSize: 0.1, bevelOffset: 0, bevelSegments: 3 // Initial bevel settings
     };
     const boardGeometry = new THREE.ExtrudeGeometry(boardShape, extrudeSettings);
     
     const boardMesh = new THREE.Mesh(boardGeometry, boardMaterial);
-    // Center the geometry manually 
+    
+    // Center the geometry for rotation
     boardGeometry.computeBoundingBox();
     const center = new THREE.Vector3();
     boardGeometry.boundingBox.getCenter(center);
@@ -138,9 +142,9 @@ export function createFinalBoardModel(THREE) {
     boardMesh.receiveShadow = true;
     boardGroup.add(boardMesh);
     
-    // Position board group correctly
-    boardGroup.position.y = 0; // Position bottom of board near y=0
+    // Position board group correctly (bottom near Y=0)
+    boardGroup.position.y = 0; 
     
-    //console.log("Board setup complete.");
+    console.log("Board base geometry created.");
     return boardGroup;
 }

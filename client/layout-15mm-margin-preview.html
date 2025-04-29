@@ -13,15 +13,13 @@
     </style>
 </head>
 <body>
-    <div id="info">Mansa's Marbles - Oware Board (Final Layout Preview)<br/>(Drag to rotate, Scroll to zoom)</div>
+    <div id="info">Mansa's Marbles - Oware Board (1.5cm Margin Layout)<br/>(Drag to rotate, Scroll to zoom)</div>
     <div id="status">Loading...</div>
     
     <script type="module">
-        // Import necessary modules and board creation logic
-        import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
-        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
-        import { BOARD_CONFIG, createFinalBoardModel } from './enhancedBoardModel.js';
+        import { FINAL_BOARD_CONFIG, createFinalOwareBoard } from './enhancedBoardModel.js';
         
+        // Direct inline script
         let status = document.getElementById('status');
         
         function log(message) {
@@ -36,9 +34,33 @@
             status.scrollTop = status.scrollHeight;
         }
         
+        // Load Three.js from CDN
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function initApp() {
+            try {
+                log("Loading Three.js...");
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+                log("Loading OrbitControls...");
+                await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js');
+                log("Setup complete. Initializing scene...");
+                initScene();
+            } catch (error) {
+                logError(`Load Error: ${error.message}`);
+            }
+        }
+        
         function initScene() {
-            log(`Using Config: L=${BOARD_CONFIG.length}, W=${BOARD_CONFIG.width}, M=${BOARD_CONFIG.margin}, PR=${BOARD_CONFIG.pitRadius}`);
-            log(`HW=${BOARD_CONFIG.handleCutoutWidth}, HL=${BOARD_CONFIG.handleCutoutLength}, HandleGap=${BOARD_CONFIG.handlePitGap.toFixed(2)}, PitGap=${BOARD_CONFIG.pitPitGap.toFixed(2)}`);
+            const BOARD_CONFIG = FINAL_BOARD_CONFIG; // Use imported config
+            log(`Using config from enhancedBoardModel.js: L=${BOARD_CONFIG.length}, W=${BOARD_CONFIG.width}`);
             
             // Scene setup
             const scene = new THREE.Scene();
@@ -57,7 +79,7 @@
             document.body.appendChild(renderer.domElement);
             
             // Controls
-            const controls = new OrbitControls(camera, renderer.domElement);
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.1;
             
@@ -87,10 +109,11 @@
             gridHelper.position.y = -BOARD_CONFIG.depth / 2;
             scene.add(gridHelper);
             
-            log("Creating Oware board from module...");
+            log("Creating Oware board...");
             
             try {
-                const board = createFinalBoardModel(THREE);
+                // Use imported function
+                const board = createFinalOwareBoard(THREE, BOARD_CONFIG);
                 scene.add(board);
                 log("Board created.");
             } catch (error) {
@@ -114,8 +137,8 @@
             animate();
         }
         
-        log("Initializing scene...");
-        initScene();
+        // Start the app
+        initApp();
     </script>
 </body>
 </html>
