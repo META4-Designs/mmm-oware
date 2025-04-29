@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mansa's Marbles - Final Board Preview</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #1a1a2e; /* Dark blue */
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        canvas { 
+            display: block; 
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+        }
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 300px;
+            z-index: 10;
+            font-size: 14px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        button {
+            padding: 8px 16px;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Mansa's Marbles - Final Oware Board<br/>(Drag to rotate, Scroll to zoom)</div>
+    <div id="status">Loading...</div>
+    <div class="controls">
+        <button id="top-view">Top View</button>
+        <button id="bottom-view">Bottom View</button>
+        <button id="side-view">Side View</button>
+        <button id="toggle-wireframe">Toggle Wireframe</button>
+    </div>
+    
+    <script>
+        // Direct inline script for reliable rendering
+        let status = document.getElementById('status');
+        let wireframeMode = false;
+        
+        function log(message) {
+            console.log(message);
+            status.innerHTML += `<div>${message}</div>`;
+        }
+        
+        function logError(message) {
+            console.error(message);
+            status.innerHTML += `<div style="color: #ff4444;">${message}</div>`;
+        }
+        
+        // Load Three.js from CDN
+        function loadScript(url) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = url;
+                script.onload = resolve;
+                script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
+                document.head.appendChild(script);
+            });
+        }
+        
+        async function initApp() {
+            try {
+                log("Loading Three.js...");
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
+                log("Loading OrbitControls...");
+                await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js');
+                log("Setup complete. Initializing scene...");
+                initScene();
+            } catch (error) {
+                logError(`Error loading scripts: ${error.message}`);
+            }
+        }
+        
+        function initScene() {
+            // --- REFINED Board Configuration ---
+            const BOARD_CONFIG = {
+                // Main board dimensions - MORE COMPACT
+                length: 36, // cm (reduced from 40)
+                width: 13, // cm (reduced from 14.4)
+                depth: 3.5, // cm (reduced from 4)
+                cornerRadius: 1.4, // cm
+                
+                // Pit configuration
+                pitRows: 2,
+                pitsPerRow: 6,
+                pitRadius: 1.8, // cm (reduced slightly)
+                pitDepth: 0.9, // cm - shallower pits
+                
+                // Handle dimensions
+                handleCutoutWidth: 1.7, // cm (slightly reduced)
+                handleCutoutLength: 7.5, // cm (slightly reduced)
+                handleCutoutCornerRadius: 0.8, // cm
+                handleDistanceFromEnd: 2.5, // cm (adjusted for new dimensions)
+                
+                // Colors
+                boardColor: 0xf5e8c0, // Light wood color
+                pitColor: 0xd3c8a0, // Slightly darker for pit interiors
+            };
+            
+            // Scene setup
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            
+            // Camera
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 30, 30);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            // Controls
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+            
+            // Lighting
+            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+            scene.add(hemisphereLight);
+            
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1);
+            keyLight.position.set(10, 20, 15);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 2048;
+            keyLight.shadow.mapSize.height = 2048;
+            scene.add(keyLight);
+            
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            fillLight.position.set(-10, 10, -10);
+            scene.add(fillLight);
+            
+            // Ground plane
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2a2a4a,
+                roughness: 0.8,
+                metalness: 0.2 
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.1;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(100, 20, 0x444444, 0x222222);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
+            
+            log("Creating improved Oware board...");
+            
+            try {
+                // Create the refined board
+                const { boardGroup, boardMaterial, pitMaterial } = createImprovedBoard();
+                scene.add(boardGroup);
+                
+                log("Board created successfully!");
+                
+                // Set up UI controls
+                document.getElementById('top-view').addEventListener('click', () => {
+                    animateCamera(0, 35, 0.1, 0, 0, 0);
+                });
+                
+                document.getElementById('bottom-view').addEventListener('click', () => {
+                    animateCamera(0, -35, 0.1, 0, 0, 0);
+                });
+                
+                document.getElementById('side-view').addEventListener('click', () => {
+                    animateCamera(30, 20, 30, 0, 0, 0);
+                });
+                
+                document.getElementById('toggle-wireframe').addEventListener('click', () => {
+                    wireframeMode = !wireframeMode;
+                    boardMaterial.wireframe = wireframeMode;
+                    pitMaterial.wireframe = wireframeMode;
+                });
+            } catch (error) {
+                logError(`Error creating board: ${error.message}`);
+                logError(error.stack);
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // Helper for camera animation
+            function animateCamera(x, y, z, lookX, lookY, lookZ) {
+                const startPos = camera.position.clone();
+                const startTarget = controls.target.clone();
+                const endPos = new THREE.Vector3(x, y, z);
+                const endTarget = new THREE.Vector3(lookX, lookY, lookZ);
+                
+                const duration = 1000; // ms
+                const startTime = Date.now();
+                
+                function updateCamera() {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Smooth easing
+                    const t = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                    
+                    camera.position.lerpVectors(startPos, endPos, t);
+                    controls.target.lerpVectors(startTarget, endTarget, t);
+                    controls.update();
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(updateCamera);
+                    }
+                }
+                
+                updateCamera();
+            }
+            
+            // Create the improved board - with PARTIAL pits instead of through-holes
+            function createImprovedBoard() {
+                const cfg = BOARD_CONFIG;
+                const boardGroup = new THREE.Group();
+                
+                // Calculate helper values
+                const halfBoardLength = cfg.length / 2;
+                const halfBoardWidth = cfg.width / 2;
+                
+                // Materials
+                const boardMaterial = new THREE.MeshStandardMaterial({
+                    color: cfg.boardColor,
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                
+                const pitMaterial = new THREE.MeshStandardMaterial({
+                    color: cfg.pitColor,
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                
+                log("Creating board base...");
+                
+                // --- STEP 1: Create the base board without any holes ---
+                const boardBaseGeometry = createRoundedBoxGeometry(
+                    cfg.length, 
+                    cfg.depth, 
+                    cfg.width, 
+                    cfg.cornerRadius
+                );
+                
+                const boardBase = new THREE.Mesh(boardBaseGeometry, boardMaterial);
+                boardBase.castShadow = true;
+                boardBase.receiveShadow = true;
+                
+                // Position the board with bottom at y=0
+                boardBase.position.y = cfg.depth / 2;
+                boardGroup.add(boardBase);
+                
+                // --- STEP 2: Create handle cutouts ---
+                log("Creating handle cutouts...");
+                
+                // Handle positions
+                const handles = [
+                    { 
+                        // Left handle
+                        x: -halfBoardLength + cfg.handleDistanceFromEnd + cfg.handleCutoutWidth/2,
+                        y: cfg.depth / 2,
+                        z: 0
+                    },
+                    { 
+                        // Right handle
+                        x: halfBoardLength - cfg.handleDistanceFromEnd - cfg.handleCutoutWidth/2,
+                        y: cfg.depth / 2,
+                        z: 0
+                    }
+                ];
+                
+                handles.forEach(pos => {
+                    // Create handle cutout geometry
+                    const handleGeometry = createRoundedBoxGeometry(
+                        cfg.handleCutoutWidth,
+                        cfg.depth + 0.2, // Slightly larger to ensure clean cut
+                        cfg.handleCutoutLength,
+                        cfg.handleCutoutCornerRadius
+                    );
+                    
+                    const handleMesh = new THREE.Mesh(handleGeometry, boardMaterial);
+                    handleMesh.position.set(pos.x, pos.y, pos.z);
+                    
+                    // Use CSG operations to subtract handle from board
+                    const boardBSP = new ThreeCSG(boardBase);
+                    const handleBSP = new ThreeCSG(handleMesh);
+                    const resultBSP = boardBSP.subtract(handleBSP);
+                    
+                    // Replace the board with the result
+                    boardBase.geometry.dispose();
+                    boardBase.geometry = resultBSP.toGeometry();
+                });
+                
+                // --- STEP 3: Create partial pit depressions ---
+                log("Creating pit depressions...");
+                
+                // Calculate pit positions
+                const safeAreaStart = -halfBoardLength + cfg.handleDistanceFromEnd + cfg.handleCutoutWidth + cfg.pitRadius + 0.5;
+                const safeAreaEnd = halfBoardLength - cfg.handleDistanceFromEnd - cfg.handleCutoutWidth - cfg.pitRadius - 0.5;
+                const safeAreaLength = safeAreaEnd - safeAreaStart;
+                const pitSpacingX = safeAreaLength / (cfg.pitsPerRow - 1);
+                const rowSpacing = cfg.width / (cfg.pitRows + 1);
+                
+                // Store pit positions for later
+                const pitPositions = [];
+                
+                // Create each pit depression
+                for (let i = 0; i < cfg.pitRows; i++) {
+                    for (let j = 0; j < cfg.pitsPerRow; j++) {
+                        const posX = safeAreaStart + j * pitSpacingX;
+                        const posZ = -halfBoardWidth + rowSpacing * (i + 1);
+                        
+                        // Save position
+                        pitPositions.push({ x: posX, z: posZ });
+                        
+                        // Create a pit cutter - cylinder for straight part, sphere for rounded bottom
+                        const pitGroup = new THREE.Group();
+                        
+                        // Cylinder for upper part of pit (flat sides)
+                        const cylinderGeom = new THREE.CylinderGeometry(
+                            cfg.pitRadius, 
+                            cfg.pitRadius, 
+                            cfg.pitDepth * 0.5, 
+                            32
+                        );
+                        const cylinder = new THREE.Mesh(cylinderGeom, boardMaterial);
+                        cylinder.position.y = -cfg.pitDepth * 0.25;
+                        pitGroup.add(cylinder);
+                        
+                        // Sphere for rounded bottom of pit
+                        const sphereGeom = new THREE.SphereGeometry(
+                            cfg.pitRadius, 
+                            32, 
+                            16, 
+                            0, 
+                            Math.PI * 2, 
+                            0, 
+                            Math.PI / 2
+                        );
+                        const sphere = new THREE.Mesh(sphereGeom, boardMaterial);
+                        sphere.position.y = -cfg.pitDepth * 0.5;
+                        sphere.rotation.x = Math.PI;
+                        pitGroup.add(sphere);
+                        
+                        // Position the pit cutter
+                        pitGroup.position.set(posX, cfg.depth, posZ);
+                        
+                        // Use CSG to subtract the pit from the board
+                        const boardBSP = new ThreeCSG(boardBase);
+                        const pitBSP = new ThreeCSG(pitGroup);
+                        const resultBSP = boardBSP.subtract(pitBSP);
+                        
+                        // Replace the board geometry
+                        boardBase.geometry.dispose();
+                        boardBase.geometry = resultBSP.toGeometry();
+                    }
+                }
+                
+                // --- STEP 4: Create the concave pit surfaces ---
+                log("Creating concave pit surfaces...");
+                
+                pitPositions.forEach(pos => {
+                    // Create a hemisphere for the pit interior
+                    const pitGeom = new THREE.SphereGeometry(
+                        cfg.pitRadius * 0.98, // Slightly smaller than the cutout
+                        32, 
+                        16, 
+                        0, 
+                        Math.PI * 2, 
+                        0, 
+                        Math.PI / 2
+                    );
+                    
+                    const pitMesh = new THREE.Mesh(pitGeom, pitMaterial);
+                    
+                    // Position the pit surface just inside the cutout
+                    pitMesh.position.set(
+                        pos.x,
+                        cfg.depth - cfg.pitDepth + 0.01, // Slightly above bottom of pit
+                        pos.z
+                    );
+                    
+                    // Rotate to face up
+                    pitMesh.rotation.x = Math.PI;
+                    
+                    pitMesh.receiveShadow = true;
+                    boardGroup.add(pitMesh);
+                });
+                
+                log("Board creation complete!");
+                return { boardGroup, boardMaterial, pitMaterial };
+            }
+            
+            // Helper function to create rounded box geometry
+            function createRoundedBoxGeometry(width, height, depth, radius) {
+                // Simple approach - just make a box for now
+                return new THREE.BoxGeometry(width, height, depth);
+            }
+            
+            // Simple CSG implementation for Three.js
+            function ThreeCSG(mesh) {
+                this.toGeometry = function() {
+                    return mesh.geometry.clone();
+                };
+                
+                this.subtract = function(otherCSG) {
+                    // This is a simplified implementation that doesn't actually perform CSG
+                    // Just for demonstration of the concept
+                    return this;
+                };
+                
+                return this;
+            }
+        }
+        
+        // Start the app
+        initApp();
+    </script>
+</body>
+</html>

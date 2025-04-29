@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mansa's Marbles - Oware Board V2</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Mansa's Marbles - Oware Board Preview V2<br/>(Drag to rotate, Scroll to zoom)</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script>
+        let scene, camera, renderer, controls, boardGroup;
+
+        // --- Configuration (Refined based on new images) ---
+        const boardLength = 40; // cm
+        const boardWidth = 14.4; // cm (Refined)
+        const boardDepth = 4; // cm
+        const cornerRadius = 1.4; // cm (Refined)
+
+        const pitRows = 2;
+        const pitsPerRow = 6;
+        // Pits are elliptical based on board-outline-top.png
+        const pitRadiusX = 2.3; // cm (Radius along board length)
+        const pitRadiusZ = 2.8; // cm (Radius along board width)
+        const pitDepth = 1.5; // cm - How deep the concave part goes
+
+        // Handle dimensions based on board-outline-top.png
+        const handleCutoutWidth = 1.86; // cm (Dimension across board's short axis)
+        const handleCutoutLength = 8.8; // cm (Dimension along board's short axis)
+        const handleCutoutCornerRadius = 0.9; // cm (Refined)
+        const handleDistanceFromEnd = 1.5; // cm (Estimated distance from board end to start of handle cutout)
+
+        const ivoryColor = 0xfffff0;
+        const goldColor = 0xB08D57; // Bronze/Gold color (Will be used for lining later if needed)
+
+        // Spacing calculations (relative to board center 0,0)
+        const halfBoardLength = boardLength / 2;
+        const halfBoardWidth = boardWidth / 2;
+        // Calculate horizontal spacing between pit centers
+        const totalPitAreaLength = boardLength - 2 * handleDistanceFromEnd - 2 * handleCutoutWidth - 2 * cornerRadius; // Approximate length available for pits
+        const pitSpacingX = totalPitAreaLength / (pitsPerRow -1); // Distance between centers
+        const firstPitX = -halfBoardLength + cornerRadius + handleDistanceFromEnd + handleCutoutWidth + pitRadiusX + (totalPitAreaLength - (pitsPerRow-1)*pitSpacingX)/2 ; // Position of first pit center
+
+        // Calculate vertical spacing between pit centers
+        const pitSpacingZ = boardWidth / (pitRows + 1); // Simple vertical spacing
+
+
+        // --- Initialization ---
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.set(0, 35, 35);
+            camera.lookAt(scene.position);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(15, 30, 20);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 100;
+             // Adjust shadow camera frustum to fit the board better
+            directionalLight.shadow.camera.left = -halfBoardLength - 5;
+            directionalLight.shadow.camera.right = halfBoardLength + 5;
+            directionalLight.shadow.camera.top = halfBoardWidth + 5;
+            directionalLight.shadow.camera.bottom = -halfBoardWidth - 5;
+            scene.add(directionalLight);
+            // const shadowHelper = new THREE.CameraHelper( directionalLight.shadow.camera );
+            // scene.add( shadowHelper );
+
+            // Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.1;
+            controls.screenSpacePanning = false;
+            controls.maxPolarAngle = Math.PI / 2 - 0.05;
+
+            // Create Board
+            boardGroup = createOwareBoard();
+            scene.add(boardGroup);
+
+            // Ground Plane
+            const planeGeometry = new THREE.PlaneGeometry(100, 100);
+            const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+            const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.position.y = -boardDepth / 2; // Position board base on the ground
+            groundPlane.receiveShadow = true;
+            scene.add(groundPlane);
+
+            // Handle Resize
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Start Animation Loop
+            animate();
+        }
+
+        // --- Board Creation ---
+        function createOwareBoard() {
+            const group = new THREE.Group();
+
+            // Materials
+            const ivoryMaterial = new THREE.MeshStandardMaterial({
+                color: ivoryColor,
+                roughness: 0.7,
+                metalness: 0.1,
+                // side: THREE.DoubleSide // Use DoubleSide if extrusion has issues
+            });
+            // Material for pits to look concave
+            const pitMaterial = new THREE.MeshStandardMaterial({
+                color: 0xcccccc, // Darker inner color
+                roughness: 0.8,
+                metalness: 0.1,
+                side: THREE.BackSide // Render the inside
+            });
+
+            // --- Main Board Shape with Holes ---
+            const boardShape = new THREE.Shape();
+            const hw = halfBoardLength;
+            const hh = halfBoardWidth;
+            const r = cornerRadius;
+
+            // Define the outer rounded rectangle path
+            boardShape.moveTo(-hw + r, -hh);
+            boardShape.lineTo(hw - r, -hh);
+            boardShape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+            boardShape.lineTo(hw, hh - r);
+            boardShape.quadraticCurveTo(hw, hh, hw - r, hh);
+            boardShape.lineTo(-hw + r, hh);
+            boardShape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+            boardShape.lineTo(-hw, -hh + r);
+            boardShape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+            // --- Define Handle Holes ---
+            const handleHoles = [];
+            const handleHalfLength = handleCutoutLength / 2;
+            const handleHalfWidth = handleCutoutWidth / 2;
+            const handleR = handleCutoutCornerRadius;
+
+            // Handle 1 (Positive X side)
+            const handlePath1 = new THREE.Path();
+            const handleCenterX1 = hw - handleDistanceFromEnd - handleHalfWidth;
+            handlePath1.moveTo(handleCenterX1 - handleHalfWidth + handleR, -handleHalfLength);
+            handlePath1.lineTo(handleCenterX1 + handleHalfWidth - handleR, -handleHalfLength);
+            handlePath1.quadraticCurveTo(handleCenterX1 + handleHalfWidth, -handleHalfLength, handleCenterX1 + handleHalfWidth, -handleHalfLength + handleR);
+            handlePath1.lineTo(handleCenterX1 + handleHalfWidth, handleHalfLength - handleR);
+            handlePath1.quadraticCurveTo(handleCenterX1 + handleHalfWidth, handleHalfLength, handleCenterX1 + handleHalfWidth - handleR, handleHalfLength);
+            handlePath1.lineTo(handleCenterX1 - handleHalfWidth + handleR, handleHalfLength);
+            handlePath1.quadraticCurveTo(handleCenterX1 - handleHalfWidth, handleHalfLength, handleCenterX1 - handleHalfWidth, handleHalfLength - handleR);
+            handlePath1.lineTo(handleCenterX1 - handleHalfWidth, -handleHalfLength + handleR);
+            handlePath1.quadraticCurveTo(handleCenterX1 - handleHalfWidth, -handleHalfLength, handleCenterX1 - handleHalfWidth + handleR, -handleHalfLength);
+            handleHoles.push(handlePath1);
+
+            // Handle 2 (Negative X side)
+            const handlePath2 = new THREE.Path();
+            const handleCenterX2 = -hw + handleDistanceFromEnd + handleHalfWidth;
+            handlePath2.moveTo(handleCenterX2 - handleHalfWidth + handleR, -handleHalfLength);
+            handlePath2.lineTo(handleCenterX2 + handleHalfWidth - handleR, -handleHalfLength);
+            handlePath2.quadraticCurveTo(handleCenterX2 + handleHalfWidth, -handleHalfLength, handleCenterX2 + handleHalfWidth, -handleHalfLength + handleR);
+            handlePath2.lineTo(handleCenterX2 + handleHalfWidth, handleHalfLength - handleR);
+            handlePath2.quadraticCurveTo(handleCenterX2 + handleHalfWidth, handleHalfLength, handleCenterX2 + handleHalfWidth - handleR, handleHalfLength);
+            handlePath2.lineTo(handleCenterX2 - handleHalfWidth + handleR, handleHalfLength);
+            handlePath2.quadraticCurveTo(handleCenterX2 - handleHalfWidth, handleHalfLength, handleCenterX2 - handleHalfWidth, handleHalfLength - handleR);
+            handlePath2.lineTo(handleCenterX2 - handleHalfWidth, -handleHalfLength + handleR);
+            handlePath2.quadraticCurveTo(handleCenterX2 - handleHalfWidth, -handleHalfLength, handleCenterX2 - handleHalfWidth + handleR, -handleHalfLength);
+            handleHoles.push(handlePath2);
+
+            boardShape.holes.push(...handleHoles);
+
+             // --- Define Pit Holes ---
+            const pitHoles = [];
+            for (let i = 0; i < pitRows; i++) {
+                for (let j = 0; j < pitsPerRow; j++) {
+                    const pitPath = new THREE.Path();
+                    // Calculate center position for this pit
+                    const posX = firstPitX + j * pitSpacingX;
+                    const posZ = -halfBoardWidth + pitSpacingZ * (i + 1);
+
+                    // Create an elliptical path
+                    pitPath.ellipse(posX, posZ, pitRadiusX, pitRadiusZ, 0, Math.PI * 2, false, 0);
+                    pitHoles.push(pitPath);
+                }
+            }
+            boardShape.holes.push(...pitHoles);
+
+
+            // --- Extrude the Board Shape ---
+            const extrudeSettings = {
+                steps: 1,
+                depth: boardDepth,
+                bevelEnabled: true, // Add a slight bevel for smoother edges
+                bevelThickness: 0.1,
+                bevelSize: 0.1,
+                bevelOffset: 0,
+                bevelSegments: 3
+            };
+            const boardGeometry = new THREE.ExtrudeGeometry(boardShape, extrudeSettings);
+            // Correct UV mapping potentially needed for textures, but okay for solid color
+            boardGeometry.center(); // Center the geometry for easier positioning/rotation
+
+            const boardMesh = new THREE.Mesh(boardGeometry, ivoryMaterial);
+            boardMesh.rotation.x = -Math.PI / 2; // Rotate to lay flat on XZ plane
+            boardMesh.castShadow = true;
+            boardMesh.receiveShadow = true;
+            group.add(boardMesh);
+
+
+            // --- Create Concave Pits (Meshes placed inside holes) ---
+            for (let i = 0; i < pitRows; i++) {
+                for (let j = 0; j < pitsPerRow; j++) {
+                    // Use a sphere geometry and scale it to be elliptical
+                    const pitGeom = new THREE.SphereGeometry(1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2); // Unit sphere
+                    const pitMesh = new THREE.Mesh(pitGeom, pitMaterial);
+
+                    // Scale to match elliptical radii
+                    pitMesh.scale.set(pitRadiusX, pitDepth, pitRadiusZ); // Scale Y to control depth appearance
+
+                    // Calculate center position for this pit (same as hole centers)
+                    const posX = firstPitX + j * pitSpacingX;
+                    const posZ = -halfBoardWidth + pitSpacingZ * (i + 1);
+
+                    // Position the pit mesh slightly below the top surface within the hole
+                    const posY = boardDepth / 2 - pitDepth + 0.1; // Adjust Y offset as needed
+
+                    pitMesh.position.set(posX, posY, posZ);
+                    pitMesh.rotation.x = Math.PI; // Flip hemisphere upside down
+
+                    pitMesh.castShadow = false; // Depressions shouldn't cast shadows outward
+                    pitMesh.receiveShadow = true; // Can receive shadows from seeds
+
+                    group.add(pitMesh);
+                }
+            }
+
+            // Adjust group position if needed (geometry is centered now)
+            group.position.y = boardDepth / 2; // Raise group so base is at y=0
+
+            return group;
+        }
+
+
+        // --- Window Resize ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // --- Start ---
+        init();
+
+    </script>
+</body>
+</html>

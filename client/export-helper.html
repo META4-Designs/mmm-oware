@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Add import maps for CDN -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+            }
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oware Board GLB Exporter</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        button { font-size: 1.2em; padding: 10px 20px; cursor: pointer; }
+        #status { margin-top: 15px; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Oware Board GLB Exporter</h1>
+    <p>This page loads the pre-computed geometry data (from <code>assets/oware_board_geometry.json</code>) and exports it as a <code>oware_board_final.glb</code> file using the browser's GLTFExporter.</p>
+    
+    <button id="exportButton">Export and Download GLB</button>
+    <div id="status">Status: Ready. Run the Node.js script first if you haven't.</div>
+
+    <script type="module">
+        import * as THREE from 'three'; // Uses importmap
+        import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js'; // Uses importmap
+
+        const exportButton = document.getElementById('exportButton');
+        const statusDiv = document.getElementById('status');
+
+        async function exportGLB() {
+            statusDiv.textContent = 'Loading binary geometry files...';
+            exportButton.disabled = true;
+
+            try {
+                // Fetch all binary files concurrently
+                const [posResponse, normResponse, indexResponse] = await Promise.all([
+                    fetch('./assets/oware_board_position.bin'),
+                    fetch('./assets/oware_board_normal.bin'),
+                    fetch('./assets/oware_board_index.bin')
+                ]);
+
+                // Check responses
+                if (!posResponse.ok) throw new Error(`Position fetch failed: ${posResponse.status}`);
+                if (!normResponse.ok) throw new Error(`Normal fetch failed: ${normResponse.status}`);
+                if (!indexResponse.ok) throw new Error(`Index fetch failed: ${indexResponse.status}`);
+
+                // Get ArrayBuffers
+                const [posBuffer, normBuffer, indexBuffer] = await Promise.all([
+                    posResponse.arrayBuffer(),
+                    normResponse.arrayBuffer(),
+                    indexResponse.arrayBuffer()
+                ]);
+
+                console.log(`Loaded position: ${posBuffer.byteLength} bytes`);
+                console.log(`Loaded normal: ${normBuffer.byteLength} bytes`);
+                console.log(`Loaded index: ${indexBuffer.byteLength} bytes`);
+
+                statusDiv.textContent = 'Creating geometry...';
+                const boardGeometry = createGeometryFromBuffers(posBuffer, normBuffer, indexBuffer);
+
+                statusDiv.textContent = 'Creating mesh...';
+                // Use a standard material for export
+                const material = new THREE.MeshStandardMaterial({ color: 0x888888 }); // Dummy material
+                const mesh = new THREE.Mesh(boardGeometry, material);
+
+                statusDiv.textContent = 'Exporting GLB... (this might take a moment)';
+
+                // Export GLB
+                const exporter = new GLTFExporter();
+                const options = {
+                    binary: true,
+                    trs: false,
+                    onlyVisible: true,
+                    truncateDrawRange: true
+                };
+
+                exporter.parse(
+                    mesh, // Scene or Object3D to export
+                    async function (result) { // OnComplete callback
+                        if (result instanceof ArrayBuffer) {
+                            saveArrayBuffer(result, 'oware_board_final.glb');
+                            statusDiv.textContent = 'Status: Export successful! Check your downloads.';
+                        } else {
+                             // Handle potential JSON output if binary fails for some reason
+                             const output = JSON.stringify(result, null, 2);
+                             saveString(output, 'oware_board_final.gltf');
+                             statusDiv.textContent = 'Status: Exported as JSON GLTF (binary failed). Check downloads.';
+                        }
+                        exportButton.disabled = false;
+                    },
+                    function (error) { // OnError callback
+                        console.error('GLTFExporter Error:', error);
+                        statusDiv.textContent = `Status: Export failed! ${error}`; 
+                        exportButton.disabled = false;
+                    },
+                    options
+                );
+
+            } catch (error) {
+                console.error('Error during export process:', error);
+                statusDiv.textContent = `Status: Error! ${error}`; 
+                exportButton.disabled = false;
+            }
+        }
+
+        function createGeometryFromBuffers(posBuffer, normBuffer, indexBuffer) {
+            const geometry = new THREE.BufferGeometry();
+
+            // Create TypedArrays directly from ArrayBuffers
+            const positionArray = new Float32Array(posBuffer);
+            const normalArray = new Float32Array(normBuffer);
+            const indexData = indexBuffer;
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+            geometry.setAttribute('normal', new THREE.BufferAttribute(normalArray, 3));
+
+            // Check if index data was fetched and is valid before setting
+            if (indexData && indexData.byteLength > 0) {
+                // Assuming Uint16 based on generator script's output if present
+                try {
+                    const indexArray = new Uint16Array(indexData);
+                    geometry.setIndex(new THREE.BufferAttribute(indexArray, 1));
+                    console.log("Index attribute set.");
+                } catch (e) {
+                    console.error("Error processing index data:", e);
+                    statusDiv.textContent = 'Status: Error processing index data.';
+                    return;
+                }
+            } else {
+                console.warn("No index data found or fetched, exporting non-indexed geometry.");
+                // Geometry will be non-indexed
+            }
+
+            geometry.computeVertexNormals(); // Recompute normals just in case
+            geometry.computeBoundingSphere(); // Important for exporter
+            console.log("Geometry created from binary buffers.");
+            console.log(` Position vertices: ${positionArray.length / 3}`);
+            console.log(` Normal vectors: ${normalArray.length / 3}`);
+            if (indexData && indexData.byteLength > 0) {
+                console.log(` Index elements: ${new Uint16Array(indexData).length}`);
+            }
+            return geometry;
+        }
+
+        function save(blob, filename) {
+            const link = document.createElement('a');
+            link.style.display = 'none';
+            document.body.appendChild(link); // Required for Firefox
+
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            link.remove();
+        }
+
+        function saveString(text, filename) {
+            save(new Blob([text], { type: 'text/plain' }), filename);
+        }
+
+        function saveArrayBuffer(buffer, filename) {
+            save(new Blob([buffer], { type: 'application/octet-stream' }), filename);
+        }
+
+        exportButton.addEventListener('click', exportGLB);
+
+    </script>
+</body>
+</html>

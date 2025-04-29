@@ -3,142 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mansa's Marbles - 1.5cm Margin Layout</title>
+    <title>Oware Board Preview (1.5cm Margin) - Enhanced Model (GLB)</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #1a1a2e; color: white; font-family: Arial, sans-serif; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 10; }
-        #status { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 4px; max-width: 450px; z-index: 10; max-height: 120px; overflow-y: auto; font-size: 11px; }
-        .debug { color: #ff9900; }
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        #info { position: absolute; top: 10px; width: 100%; text-align: center; color: #fff; z-index: 100; }
+        #status { position: absolute; bottom: 10px; left: 10px; color: #fff; background: rgba(0,0,0,0.5); padding: 5px; }
     </style>
+    <!-- Import THREE.js and necessary addons -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+            }
+        }
+    </script>
 </head>
 <body>
     <div id="info">Mansa's Marbles - Oware Board (1.5cm Margin Layout)<br/>(Drag to rotate, Scroll to zoom)</div>
     <div id="status">Loading...</div>
     
     <script type="module">
-        import { FINAL_BOARD_CONFIG, createFinalOwareBoard } from './enhancedBoardModel.js';
+        import * as THREE from 'three'; // Will now use the importmap CDN path
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js'; // Will now use the importmap CDN path
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'; // Import GLTFLoader
         
-        // Direct inline script
-        let status = document.getElementById('status');
-        
-        function log(message) {
-            console.log(message);
-            status.innerHTML += `<div>${message}</div>`;
-            status.scrollTop = status.scrollHeight;
-        }
-        
-        function logError(message) {
-            console.error(message);
-            status.innerHTML += `<div class="debug" style="color: #ff4444;">${message}</div>`;
-            status.scrollTop = status.scrollHeight;
-        }
-        
-        // Load Three.js from CDN
-        function loadScript(url) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = url;
-                script.onload = resolve;
-                script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
-                document.head.appendChild(script);
-            });
-        }
-        
-        async function initApp() {
-            try {
-                log("Loading Three.js...");
-                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js');
-                log("Loading OrbitControls...");
-                await loadScript('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js');
-                log("Setup complete. Initializing scene...");
-                initScene();
-            } catch (error) {
-                logError(`Load Error: ${error.message}`);
-            }
-        }
-        
-        function initScene() {
-            const BOARD_CONFIG = FINAL_BOARD_CONFIG; // Use imported config
-            log(`Using config from enhancedBoardModel.js: L=${BOARD_CONFIG.length}, W=${BOARD_CONFIG.width}`);
-            
-            // Scene setup
-            const scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
-            
+        import { FINAL_BOARD_CONFIG } from './enhancedBoardModel.js';
+ 
+        let scene, camera, renderer, controls;
+        const statusDiv = document.getElementById('status');
+
+        async function init() {
+            statusDiv.textContent = 'Initializing scene...';
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xaaaaaa);
+            // Add subtle fog
+            scene.fog = new THREE.Fog(0xaaaaaa, 50, 200);
+
             // Camera
-            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 35, 35);
-            camera.lookAt(0, 0, 0);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
             
             // Renderer
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
+            renderer.setPixelRatio(window.devicePixelRatio);
             document.body.appendChild(renderer.domElement);
-            
+            // Enable Shadows
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
             // Controls
-            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.1;
-            
-            // Lighting
-            const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.7);
-            scene.add(hemisphereLight);
-            const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
-            keyLight.position.set(15, 25, 20);
-            keyLight.castShadow = true;
-            keyLight.shadow.mapSize.width = 2048; keyLight.shadow.mapSize.height = 2048;
-            scene.add(keyLight);
-            const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
-            fillLight.position.set(-15, 15, -15);
-            scene.add(fillLight);
-            
-            // Ground plane
-            const groundGeometry = new THREE.PlaneGeometry(100, 100);
-            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a4a, roughness: 0.8 });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -BOARD_CONFIG.depth / 2 - 0.1;
-            ground.receiveShadow = true;
-            scene.add(ground);
-            
-            // Grid helper
-            const gridHelper = new THREE.GridHelper(100, 20, 0x444444, 0x222222);
-            gridHelper.position.y = -BOARD_CONFIG.depth / 2;
-            scene.add(gridHelper);
-            
-            log("Creating Oware board...");
-            
-            try {
-                // Use imported function
-                const board = createFinalOwareBoard(THREE, BOARD_CONFIG);
-                scene.add(board);
-                log("Board created.");
-            } catch (error) {
-                logError(`Create Error: ${error.message}`);
-                logError(error.stack);
-            }
-            
-            // Window resize
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+            controls.screenSpacePanning = false;
+            controls.minDistance = 5;
+            controls.maxDistance = 150;
+            controls.minPolarAngle = 0; // Allow full vertical rotation
+            controls.maxPolarAngle = Math.PI; // Allow full vertical rotation
+
+            // --- Visualization Debug --- 
+            // --- Load Geometry from Separate Binary Files --- 
+            statusDiv.textContent = 'Status: Loading geometry binary files...';
+            const basePath = './assets/oware_board';
+            Promise.all([
+                fetch(`${basePath}_position.bin`).then(res => res.arrayBuffer()),
+                fetch(`${basePath}_normal.bin`).then(res => res.arrayBuffer()),
+                fetch(`${basePath}_index.bin`).then(res => res.arrayBuffer()) 
+            ]).then(([positionBuffer, normalBuffer, indexBuffer]) => {
+                console.log('Geometry buffers loaded:', 
+                    { positionBytes: positionBuffer.byteLength, normalBytes: normalBuffer.byteLength, indexBytes: indexBuffer.byteLength }
+                );
+
+                const positionArray = new Float32Array(positionBuffer);
+                const normalArray = new Float32Array(normalBuffer);
+                const indexArray = new Uint32Array(indexBuffer); // Based on generation script output
+
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+                geometry.setAttribute('normal', new THREE.BufferAttribute(normalArray, 3));
+                geometry.setIndex(new THREE.BufferAttribute(indexArray, 1));
+
+                console.log("Reconstructed Geometry:", geometry);
+                console.log("Geometry Index:", geometry.index);
+                console.log("Geometry Position Count:", geometry.attributes.position.count);
+
+                // Ensure geometry is ready for rendering (e.g., bounding sphere for frustum culling)
+                geometry.computeBoundingSphere();
+
+                // Create the mesh
+                const material = new THREE.MeshStandardMaterial({ 
+                    color: 0x8B4513, // SaddleBrown
+                    roughness: 0.8,
+                    metalness: 0.1
+                });
+                const boardMesh = new THREE.Mesh(geometry, material);
+                boardMesh.castShadow = true;
+                boardMesh.receiveShadow = true;
+
+                scene.add(boardMesh);
+                console.log("Board mesh created from binary files and added.", boardMesh);
+
+                statusDiv.textContent = 'Status: Visualization ready.';
+            }).catch(error => {
+                console.error('Error loading or processing geometry binary files:', error);
+                statusDiv.textContent = 'Status: Error loading geometry files.';
             });
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(15, 40, 25); // Adjust position for better shadows
+            directionalLight.castShadow = true;
+            // Configure shadow properties for quality/performance
+            directionalLight.shadow.mapSize.width = 1024; 
+            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 100;
+            directionalLight.shadow.camera.left = -30;
+            directionalLight.shadow.camera.right = 30;
+            directionalLight.shadow.camera.top = 30;
+            directionalLight.shadow.camera.bottom = -30;
+            scene.add(directionalLight);
+            // Optional: Add a light helper
+            // const lightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+            // scene.add(lightHelper);
+            // Optional: Add a shadow camera helper
+            // const shadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+            // scene.add(shadowHelper);
             
-            // Animation loop
-            function animate() {
-                requestAnimationFrame(animate);
-                controls.update();
-                renderer.render(scene, camera);
-            }
+            // Ground plane (optional, but helps visualize shadows)
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 1.0 });
+            const groundPlane = new THREE.Mesh(groundGeometry, groundMaterial);
+            groundPlane.rotation.x = -Math.PI / 2; // Rotate flat
+            groundPlane.position.y = -FINAL_BOARD_CONFIG.depth / 2; // Position slightly below the board's likely origin
+            groundPlane.receiveShadow = true;
+            scene.add(groundPlane);
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Start animation loop
             animate();
         }
-        
-        // Start the app
-        initApp();
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); // only required if controls.enableDamping or controls.autoRotate are set to true
+            renderer.render(scene, camera);
+        }
+
+        // --- Start the application --- 
+        init().catch(error => { // Add catch block for top-level init errors
+            console.error("Initialization failed:", error);
+            statusDiv.textContent = 'Error: Initialization failed!';
+        }); 
+
     </script>
 </body>
 </html>

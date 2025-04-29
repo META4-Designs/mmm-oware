@@ -238,21 +238,27 @@ class GameRenderer {
    * Creates a basic board model
    * This is a placeholder until we have the actual 3D models
    */
-  createBasicBoard() {
-    // Create a simple board geometry
-    const boardGeometry = new THREE.BoxGeometry(10, 0.5, 5);
-    const boardMaterial = new THREE.MeshStandardMaterial({ 
+  async createBasicBoard() {
+    // Load the extruded geometry from JSON
+    const loader = new THREE.BufferGeometryLoader();
+    const response = await fetch('/js/boardGeometry.json');
+    const geometryJson = await response.json();
+    const boardGeometry = loader.parse(geometryJson);
+    // Center geometry
+    boardGeometry.computeBoundingBox();
+    const bbox = boardGeometry.boundingBox;
+    const center = new THREE.Vector3();
+    bbox.getCenter(center);
+    boardGeometry.translate(-center.x, -center.y, -center.z);
+    const boardMaterial = new THREE.MeshStandardMaterial({
       color: 0xe6b31e,
       roughness: 0.3,
       metalness: 0.2
     });
-    
     this.board = new THREE.Mesh(boardGeometry, boardMaterial);
     this.board.receiveShadow = true;
     this.scene.add(this.board);
-    
-    // Create house indentations
-    this.createHouses();
+    // Optionally: createHouses() if you want to show house markers on top
   }
   
   /**
@@ -286,10 +292,9 @@ class GameRenderer {
   /**
    * Starts the rendering loop
    */
-  start() {
-    // Create a basic board for testing
-    this.createBasicBoard();
-    
+  async start() {
+    // Create the board geometry from SVG
+    await this.createBasicBoard();
     // Start the animation loop
     this.animate();
   }

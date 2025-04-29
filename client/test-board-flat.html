@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oware Board - Flat Orientation</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden;
+            background-color: #1a1a2e;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        #game-canvas { 
+            width: 100%; 
+            height: 100vh; 
+            display: block; 
+        }
+        .panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            width: 200px;
+            font-size: 14px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #555;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">Loading...</div>
+    <canvas id="game-canvas"></canvas>
+    
+    <div class="panel">
+        <h3>Oware Board</h3>
+        <div id="info">
+            <p>Dimensions: 40cm × 20cm × 4cm</p>
+            <p>Pits: 12 (2 rows of 6)</p>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button id="btn-top-view">Top View</button>
+        <button id="btn-perspective">Perspective</button>
+        <button id="btn-toggle-marbles">Toggle Marbles</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+        import { createBoardModel, setupMarbles, BOARD_DIMENSIONS } from '/improved-board-model.js';
+        
+        // Hide loading message when loaded
+        window.addEventListener('load', () => {
+            document.getElementById('loading').style.display = 'none';
+        });
+        
+        // Initialize scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        // Camera
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 30, 40);
+        camera.lookAt(0, 0, 0);
+        
+        // Renderer
+        const canvas = document.getElementById('game-canvas');
+        const renderer = new THREE.WebGLRenderer({ 
+            canvas, 
+            antialias: true,
+            preserveDrawingBuffer: true 
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Controls
+        const controls = new OrbitControls(camera, canvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2; // Prevent camera from going below the ground
+        
+        // Lighting
+        // Ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+        
+        // Main directional light (simulates sun)
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        mainLight.position.set(10, 30, 20);
+        mainLight.castShadow = true;
+        
+        // Configure shadow quality
+        mainLight.shadow.mapSize.width = 2048;
+        mainLight.shadow.mapSize.height = 2048;
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 100;
+        mainLight.shadow.camera.left = -30;
+        mainLight.shadow.camera.right = 30;
+        mainLight.shadow.camera.top = 30;
+        mainLight.shadow.camera.bottom = -30;
+        scene.add(mainLight);
+        
+        // Secondary fill light
+        const fillLight = new THREE.DirectionalLight(0xffffcc, 0.3);
+        fillLight.position.set(-10, 20, -10);
+        scene.add(fillLight);
+        
+        // Ground plane
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333344,
+            roughness: 0.9,
+            metalness: 0.1,
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+        ground.position.y = -0.1; // Slightly below board to avoid z-fighting
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Helper grid (for development)
+        const gridHelper = new THREE.GridHelper(100, 100, 0x444444, 0x222222);
+        gridHelper.position.y = -0.05; // Slightly below ground
+        scene.add(gridHelper);
+        
+        // Create the board
+        let boardGroup;
+        let marblesAdded = false;
+        
+        try {
+            // Create board and add to scene
+            boardGroup = createBoardModel(THREE);
+            scene.add(boardGroup);
+            
+            // Position board to sit on ground
+            // (should already be correctly positioned in the model creation)
+            
+            // Add debug helpers
+            const boardBounds = new THREE.Box3().setFromObject(boardGroup);
+            
+            // Calculate dimensions
+            const size = new THREE.Vector3();
+            boardBounds.getSize(size);
+            
+            console.log('Board dimensions:', {
+                width: size.x,
+                height: size.y,
+                depth: size.z
+            });
+        } catch (error) {
+            console.error('Error creating board:', error);
+        }
+        
+        // Controls
+        document.getElementById('btn-top-view').addEventListener('click', () => {
+            // Smooth transition to top view
+            animateCamera(0, 30, 0, 0, 0, 0);
+        });
+        
+        document.getElementById('btn-perspective').addEventListener('click', () => {
+            // Smooth transition to perspective view
+            animateCamera(20, 25, 30, 0, 0, 0);
+        });
+        
+        document.getElementById('btn-toggle-marbles').addEventListener('click', () => {
+            if (!boardGroup) return;
+            
+            if (!marblesAdded) {
+                // Add marbles/seeds
+                setupMarbles(THREE, boardGroup, 4);
+                marblesAdded = true;
+                document.getElementById('btn-toggle-marbles').textContent = 'Remove Marbles';
+            } else {
+                // Remove all marbles
+                const marblesToRemove = [];
+                boardGroup.traverse(child => {
+                    if (child.userData && child.userData.type === 'seed') {
+                        marblesToRemove.push(child);
+                    }
+                });
+                
+                marblesToRemove.forEach(marble => {
+                    boardGroup.remove(marble);
+                });
+                
+                marblesAdded = false;
+                document.getElementById('btn-toggle-marbles').textContent = 'Add Marbles';
+            }
+        });
+        
+        // Helper function for smooth camera transitions
+        function animateCamera(x, y, z, targetX, targetY, targetZ) {
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const endPos = new THREE.Vector3(x, y, z);
+            const endTarget = new THREE.Vector3(targetX, targetY, targetZ);
+            
+            const duration = 1000; // ms
+            const startTime = Date.now();
+            
+            function updateCamera() {
+                const elapsed = Date.now() - startTime;
+                const t = Math.min(elapsed / duration, 1);
+                
+                // Smooth easing
+                const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+                
+                // Update position
+                camera.position.lerpVectors(startPos, endPos, ease);
+                
+                // Update target
+                controls.target.lerpVectors(startTarget, endTarget, ease);
+                controls.update();
+                
+                // Continue animation if not complete
+                if (t < 1) {
+                    requestAnimationFrame(updateCamera);
+                }
+            }
+            
+            updateCamera();
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Update camera aspect ratio
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            
+            // Update renderer size
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>

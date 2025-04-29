@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mansa's Marbles - Corrected Board</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #f0f0f0; }
+        canvas { display: block; }
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            color: #333;
+            font-family: Arial, sans-serif;
+            z-index: 10;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+        button {
+            padding: 8px 16px;
+            background: #555;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #777;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">Mansa's Marbles - Corrected Oware Board<br/>(Drag to rotate, Scroll to zoom)</div>
+    <div class="controls">
+        <button id="toggle-marbles">Add Marbles</button>
+        <button id="top-view">Top View</button>
+        <button id="side-view">Side View</button>
+    </div>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+        import { createOwareBoard, setupMarbles, BOARD_CONFIG } from '/js/models/correctedBoard.js';
+
+        // Scene, camera, renderer setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+        
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 35, 35);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        // Controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.1;
+        controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent going below ground
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(15, 30, 20);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 100;
+        
+        // Adjust shadow camera to fit board
+        const boardLength = BOARD_CONFIG.length;
+        const boardWidth = BOARD_CONFIG.width;
+        directionalLight.shadow.camera.left = -boardLength/2 - 5;
+        directionalLight.shadow.camera.right = boardLength/2 + 5;
+        directionalLight.shadow.camera.top = boardWidth/2 + 5;
+        directionalLight.shadow.camera.bottom = -boardWidth/2 - 5;
+        scene.add(directionalLight);
+        
+        // Create board
+        const board = createOwareBoard(THREE);
+        scene.add(board.group);
+        
+        // Ground plane
+        const planeGeometry = new THREE.PlaneGeometry(100, 100);
+        const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.3 });
+        const ground = new THREE.Mesh(planeGeometry, planeMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.1; // Slightly below board
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Grid helper
+        const gridHelper = new THREE.GridHelper(100, 20, 0x555555, 0x333333);
+        gridHelper.position.y = -0.05;
+        scene.add(gridHelper);
+        
+        // UI Controls
+        let marblesAdded = false;
+        
+        document.getElementById('toggle-marbles').addEventListener('click', () => {
+            if (!marblesAdded) {
+                setupMarbles(THREE, board, 4);
+                marblesAdded = true;
+                document.getElementById('toggle-marbles').textContent = 'Remove Marbles';
+            } else {
+                // Remove marbles
+                const marblesToRemove = [];
+                board.group.traverse(child => {
+                    if (child.userData && child.userData.type === 'seed') {
+                        marblesToRemove.push(child);
+                    }
+                });
+                
+                marblesToRemove.forEach(marble => {
+                    board.group.remove(marble);
+                });
+                
+                // Clear seeds arrays
+                board.pits.forEach(pit => {
+                    pit.userData.seeds = [];
+                });
+                
+                marblesAdded = false;
+                document.getElementById('toggle-marbles').textContent = 'Add Marbles';
+            }
+        });
+        
+        document.getElementById('top-view').addEventListener('click', () => {
+            // Smooth transition to top view
+            animateCamera(0, 40, 0, 0, 0, 0);
+        });
+        
+        document.getElementById('side-view').addEventListener('click', () => {
+            // Smooth transition to side view
+            animateCamera(35, 25, 35, 0, 0, 0);
+        });
+        
+        // Camera animation helper
+        function animateCamera(targetX, targetY, targetZ, lookAtX, lookAtY, lookAtZ) {
+            const startPos = camera.position.clone();
+            const startTarget = controls.target.clone();
+            const endPos = new THREE.Vector3(targetX, targetY, targetZ);
+            const endTarget = new THREE.Vector3(lookAtX, lookAtY, lookAtZ);
+            
+            const duration = 1000; // ms
+            const startTime = Date.now();
+            
+            function updateCamera() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Smooth easing
+                const t = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+                
+                // Update camera position
+                camera.position.lerpVectors(startPos, endPos, t);
+                
+                // Update camera target
+                controls.target.lerpVectors(startTarget, endTarget, t);
+                controls.update();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCamera);
+                }
+            }
+            
+            updateCamera();
+        }
+        
+        // Handle window resize
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', onWindowResize);
+        
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
